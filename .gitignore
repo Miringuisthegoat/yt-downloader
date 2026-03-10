@@ -1,0 +1,27 @@
+# Virtual environment
+yt/
+venv/
+env/
+
+# Database
+db.sqlite3
+test
+
+# Static files
+static_serve/
+staticfiles/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment variables
+.env
+*.env
+
+# VS Code
+.vscode/
+
+# Swap files
+*.swp
