@@ -5,6 +5,7 @@ from .forms import DownloadForm
 import re
 import os
 import tempfile
+import shutil
 
 # Headers to bypass YouTube bot detection
 YDL_HEADERS = {
@@ -14,15 +15,21 @@ YDL_HEADERS = {
 }
 
 # ---------------------------
-# COOKIE SUPPORT
+# FIXED COOKIE SUPPORT FOR RENDER
 # ---------------------------
 RENDER_SECRETS_PATH = "/etc/secrets/cookies.txt"
-LOCAL_COOKIES_PATH = os.path.join(os.getcwd(), "cookies.txt")
+# We move it to /tmp because it's a writable directory on Render
+WRITABLE_COOKIES_PATH = "/tmp/cookies.txt"
 
 if os.path.exists(RENDER_SECRETS_PATH):
-    COOKIES_PATH = RENDER_SECRETS_PATH
-elif os.path.exists(LOCAL_COOKIES_PATH):
-    COOKIES_PATH = LOCAL_COOKIES_PATH
+    try:
+        shutil.copy2(RENDER_SECRETS_PATH, WRITABLE_COOKIES_PATH)
+        COOKIES_PATH = WRITABLE_COOKIES_PATH
+    except Exception:
+        # If copy fails, fallback to read-only but yt-dlp might complain
+        COOKIES_PATH = RENDER_SECRETS_PATH
+elif os.path.exists(os.path.join(os.getcwd(), "cookies.txt")):
+    COOKIES_PATH = os.path.join(os.getcwd(), "cookies.txt")
 else:
     COOKIES_PATH = None
 
@@ -52,7 +59,6 @@ def download_video(request):
         if not re.match(regex, video_url):
             return HttpResponse('Enter correct URL.')
 
-        # --- SPEED OPTIMIZATIONS ADDED HERE ---
         ydl_opts = {
             'quiet': True,
             'no_warnings': True,
@@ -60,7 +66,7 @@ def download_video(request):
             'extractor_args': get_extractor_args(),
             'nocheckcertificate': True,
             'noplaylist': True,
-            'check_formats': False,    # Speeds up info extraction significantly
+            'check_formats': False,    # Speed Optimization
             'no_color': True,
             'lazy_playlist': True,
         }
@@ -76,7 +82,6 @@ def download_video(request):
             return render(request, 'index.html', context)
 
         streams = []
-        # Filter formats to only include those with resolution or specific audio
         for f in meta.get('formats', []):
             file_size = f.get('filesize') or f.get('filesize_approx') or 0
             if file_size:
@@ -126,7 +131,7 @@ def start_download(request):
         'noplaylist': True,
         'nocheckcertificate': True,
         'outtmpl': os.path.join(tmp_dir, '%(title)s.%(ext)s'),
-        'check_formats': False, # Avoid extra requests during download start
+        'check_formats': False,
     }
 
     if COOKIES_PATH:
@@ -163,12 +168,10 @@ def start_download(request):
                 return HttpResponse('Download failed.', status=500)
             filename = os.path.join(tmp_dir, files[0])
 
-        # Use a context manager for the file response to ensure it closes properly
-        response = FileResponse(
+        return FileResponse(
             open(filename, 'rb'),
             as_attachment=True,
             filename=os.path.basename(filename)
         )
-        return response
     except Exception as e:
         return HttpResponse(f'Download error: {str(e)}', status=500)
