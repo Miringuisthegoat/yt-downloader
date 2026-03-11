@@ -15,6 +15,7 @@
     min-height: 100vh;
   }
 
+  /* ── HERO ── */
   .hero {
     position: relative;
     min-height: 100vh;
@@ -47,6 +48,89 @@
     pointer-events: none;
   }
 
+  /* ── AQUARIUS EMBLEM ── */
+  .aquarius-emblem {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 2rem;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .aquarius-ring {
+    position: relative;
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: conic-gradient(
+      from 180deg,
+      rgba(139,92,246,0.8) 0deg,
+      rgba(168,85,247,0.6) 90deg,
+      rgba(196,181,253,0.3) 180deg,
+      rgba(139,92,246,0.8) 360deg
+    );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+      0 0 30px rgba(139,92,246,0.4),
+      0 0 60px rgba(139,92,246,0.15),
+      inset 0 0 20px rgba(0,0,0,0.5);
+    animation: spinRing 12s linear infinite;
+  }
+
+  .aquarius-ring::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border-radius: 50%;
+    background: #0a0a0f;
+  }
+
+  .aquarius-inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
+  }
+
+  .aquarius-symbol {
+    font-size: 1.6rem;
+    background: linear-gradient(135deg, #c4b5fd, #f0abfc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.1rem;
+  }
+
+  .aquarius-number {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #c4b5fd, #f0abfc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 0.05em;
+  }
+
+  .aquarius-label {
+    margin-top: 0.6rem;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(196,181,253,0.5);
+  }
+
+  @keyframes spinRing {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  /* ── HERO TEXT ── */
   .hero-badge {
     font-family: 'DM Sans', sans-serif;
     font-size: 0.7rem;
@@ -87,6 +171,7 @@
     animation: fadeUp 0.6s 0.2s ease both;
   }
 
+  /* ── SEARCH ── */
   .search-wrap {
     width: 100%;
     max-width: 680px;
@@ -142,6 +227,22 @@
 
   .btn-search:hover { opacity: 0.88; transform: translateY(-1px); }
 
+  /* ── ERROR BOX ── */
+  .error-box {
+    margin-top: 1.5rem;
+    background: rgba(248,113,113,0.08);
+    border: 1px solid rgba(248,113,113,0.25);
+    border-radius: 12px;
+    padding: 0.9rem 1.4rem;
+    color: #fca5a5;
+    font-size: 0.88rem;
+    text-align: center;
+    max-width: 680px;
+    width: 100%;
+    animation: fadeUp 0.3s ease both;
+  }
+
+  /* ── RESULTS ── */
   .results {
     max-width: 1100px;
     margin: 0 auto;
@@ -228,6 +329,7 @@
     overflow-y: auto;
   }
 
+  /* ── TABLES ── */
   .section-label {
     font-family: 'Playfair Display', serif;
     font-size: 1.4rem;
@@ -265,7 +367,6 @@
     text-align: left;
   }
 
-  /* Remove ALL Bootstrap striping */
   .stream-table tbody tr,
   .stream-table tbody tr:nth-child(odd),
   .stream-table tbody tr:nth-child(even),
@@ -316,7 +417,6 @@
     letter-spacing: 0.05em;
   }
 
-  /* MP3 badge */
   .mp3-badge {
     background: rgba(20,184,166,0.15);
     border: 1px solid rgba(20,184,166,0.3);
@@ -383,15 +483,36 @@
 <!-- ── HERO ── -->
 <div class="hero">
   <div class="hero-grid"></div>
+
+  <!-- Aquarius Emblem -->
+  <div class="aquarius-emblem">
+    <div class="aquarius-ring">
+      <div class="aquarius-inner">
+        <span class="aquarius-symbol">♒</span>
+        <span class="aquarius-number">20</span>
+      </div>
+    </div>
+    <span class="aquarius-label">Aquarius</span>
+  </div>
+
   <div class="hero-badge">Free · Fast · No Limits</div>
   <h1 class="hero-title">YouTube<br>Downloader</h1>
   <p class="hero-sub">Paste a link. Pick your quality. Done.</p>
+
   <div class="search-wrap">
     <form action="" method="post">
       {% csrf_token %}
       {{ form|crispy }}
       <button type="submit" class="btn-search">↵ &nbsp; Search Video</button>
     </form>
+
+    <!-- Error Message -->
+    {% if error %}
+    <div class="error-box">
+      ⚠️ {{ error }}
+    </div>
+    {% endif %}
+
   </div>
 </div>
 
@@ -399,7 +520,6 @@
 {% if title %}
 <div class="results">
 
-  <!-- Video Info Card -->
   <div class="video-card">
     <div class="video-thumb">
       <img src="{{ thumb }}" alt="{{ title }}">
@@ -421,7 +541,6 @@
     </div>
   </div>
 
-  <!-- Video Downloads -->
   <p class="section-label">🎬 &nbsp; Video Downloads</p>
   <table class="stream-table">
     <thead>
@@ -441,9 +560,7 @@
             <td><span class="ext-badge">{{ stream.extension }}</span></td>
             <td>
               <a href="/download/?url={{ video_url }}&format_id={{ stream.format_id }}"
-                 class="btn-dl btn-dl-video">
-                ↓ Download
-              </a>
+                 class="btn-dl btn-dl-video">↓ Download</a>
             </td>
           </tr>
         {% endif %}
@@ -451,7 +568,6 @@
     </tbody>
   </table>
 
-  <!-- Audio Downloads — all converted to MP3 -->
   <p class="section-label">🎵 &nbsp; Audio Only <span class="mp3-badge">MP3</span></p>
   <table class="stream-table">
     <thead>
@@ -468,13 +584,11 @@
             <td>{{ stream.file_size }}</td>
             <td>
               <span class="ext-badge">{{ stream.extension }}</span>
-              → <span class="ext-badge" style="color:#5eead4; border-color: rgba(20,184,166,0.3);">MP3</span>
+              → <span class="ext-badge" style="color:#5eead4; border-color:rgba(20,184,166,0.3);">MP3</span>
             </td>
             <td>
               <a href="/download/?url={{ video_url }}&format_id={{ stream.format_id }}&audio=true"
-                 class="btn-dl btn-dl-audio">
-                ↓ Download MP3
-              </a>
+                 class="btn-dl btn-dl-audio">↓ Download MP3</a>
             </td>
           </tr>
         {% endif %}
