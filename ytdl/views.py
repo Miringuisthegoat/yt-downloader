@@ -8,6 +8,21 @@ import shutil
 from .forms import DownloadForm
 from .utils import get_yt_dlp_opts  # Ensure utils.py is in the same folder
 
+# ==========================================================
+# FIX: Handle Read-Only File System for Render
+# ==========================================================
+SECRET_COOKIE_PATH = '/etc/secrets/cookies.txt'
+WRITABLE_COOKIE_PATH = '/tmp/cookies.txt'
+
+# Copy the cookies to /tmp/ where the app has write permissions.
+# This prevents the [Errno 30] Read-only file system error.
+if os.path.exists(SECRET_COOKIE_PATH):
+    try:
+        shutil.copy2(SECRET_COOKIE_PATH, WRITABLE_COOKIE_PATH)
+    except Exception as e:
+        print(f"Warning: Could not copy cookies to writable path: {e}")
+# ==========================================================
+
 def download_video(request):
     form = DownloadForm(request.POST or None)
     context = {'form': form}
@@ -51,10 +66,11 @@ def download_video(request):
                 })
 
         except Exception as e:
-            # Specific check for common 2026 blocks
             error_str = str(e)
             if "Sign in to confirm" in error_str:
-                context['error'] = "YouTube is blocking this request. Please update your PO_TOKEN or Cookies."
+                context['error'] = "YouTube is blocking this request. Please update your cookies."
+            elif "Read-only file system" in error_str:
+                context['error'] = "File system error. Please check the /tmp/ cookie configuration."
             else:
                 context['error'] = f"Could not fetch video info: {error_str[:100]}"
             
@@ -89,15 +105,13 @@ def start_download(request):
             if is_audio:
                 filename = os.path.splitext(filename)[0] + '.mp3'
 
-            # Use a generator or FileResponse to serve the file
+            # Stream the file back to the user
             response = FileResponse(
                 open(filename, 'rb'), 
                 as_attachment=True, 
                 filename=os.path.basename(filename)
             )
             
-            # Note: We can't delete the tmp_dir immediately because FileResponse 
-            # needs to read it. Django will close the file automatically.
             return response
 
     except Exception as e:
