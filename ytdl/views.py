@@ -13,6 +13,13 @@ YDL_HEADERS = {
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
 }
 
+# Path to cookies (if using environment variable)
+COOKIES_PATH = "/tmp/cookies.txt"
+cookies_data = os.getenv("YT_COOKIES")
+if cookies_data:
+    with open(COOKIES_PATH, "w") as f:
+        f.write(cookies_data)
+
 
 def download_video(request):
     form = DownloadForm(request.POST or None)
@@ -20,26 +27,23 @@ def download_video(request):
 
     if form.is_valid():
         video_url = form.cleaned_data.get("url")
-
-        regex = r'^(http(s)?:\/\/)?((w){3}.)?youtu(be|.be)?(\.com)?\/.+'
+        regex = r'^(http(s)?:\/\/)?((w){3}\.)?youtu(be|\.be)?(\.com)?\/.+'
         if not re.match(regex, video_url):
-            return HttpResponse('Enter correct url.')
+            return HttpResponse('Enter correct URL.')
 
         ydl_opts = {
             'quiet': True,
             'no_warnings': True,
             'http_headers': YDL_HEADERS,
-
-            # Bypass cloud restrictions
             'extractor_args': {
                 'youtube': {
                     'player_client': ['android', 'web'],
                     'player_skip': ['configs', 'webpage']
                 }
             },
-
             'nocheckcertificate': True,
             'noplaylist': True,
+            'cookiefile': COOKIES_PATH if os.path.exists(COOKIES_PATH) else None,
         }
 
         try:
@@ -49,49 +53,43 @@ def download_video(request):
             context['error'] = f'Could not fetch video: {str(e)}'
             return render(request, 'index.html', context)
 
-        video_audio_streams = []
-
-        for m in meta['formats']:
-
-            file_size = m.get('filesize') or m.get('filesize_approx') or 0
-
+        streams = []
+        for f in meta['formats']:
+            file_size = f.get('filesize') or f.get('filesize_approx') or 0
             if file_size:
-                file_size = f'{round(int(file_size) / 1000000, 2)} mb'
+                file_size = f'{round(int(file_size)/1_000_000,2)} MB'
             else:
                 file_size = 'Unknown'
 
-            resolution = 'Audio'
-            if m.get('height') is not None:
-                resolution = f"{m['height']}p"
+            resolution = f"{f['height']}p" if f.get('height') else 'Audio'
 
-            video_audio_streams.append({
+            streams.append({
+                'format_id': f['format_id'],
                 'resolution': resolution,
-                'extension': m.get('ext', 'N/A'),
-                'file_size': file_size,
-                'format_id': m.get('format_id', ''),
+                'extension': f.get('ext', 'N/A'),
+                'file_size': file_size
             })
 
-        video_audio_streams = video_audio_streams[::-1]
+        streams = streams[::-1]
 
         thumbnails = meta.get('thumbnails', [{}])
         thumb_url = thumbnails[-1]['url'] if thumbnails else ''
 
-        context = {
+        context.update({
             'form': form,
             'title': meta.get('title', 'N/A'),
-            'streams': video_audio_streams,
+            'streams': streams,
             'description': meta.get('description', ''),
             'thumb': thumb_url,
             'video_url': video_url,
-            'duration': round(int(meta.get('duration', 0)) / 60, 2),
-            'views': f'{int(meta.get("view_count", 0)):,}'
-        }
+            'duration': round(int(meta.get('duration',0))/60,2),
+            'views': f'{int(meta.get("view_count",0)):,}'
+        })
 
     return render(request, 'index.html', context)
 
 
 def start_download(request):
-
     video_url = request.GET.get('url')
     format_id = request.GET.get('format_id')
     is_audio = request.GET.get('audio') == 'true'
@@ -104,45 +102,32 @@ def start_download(request):
     base_opts = {
         'quiet': True,
         'http_headers': YDL_HEADERS,
-
-        'extractor_args': {
-            'youtube': {
-                'player_client': ['android', 'web']
-            }
-        },
-
-        # Faster downloads
+        'extractor_args': {'youtube': {'player_client': ['android', 'web']}},
         'concurrent_fragment_downloads': 5,
-
-        'outtmpl': os.path.join(tmp_dir, '%(title)s.%(ext)s'),
+        'noplaylist': True,
+        'nocheckcertificate': True,
+        'cookiefile': COOKIES_PATH if os.path.exists(COOKIES_PATH) else None,
+        'outtmpl': os.path.join(tmp_dir, '%(title)s.%(ext)s')
     }
 
     if is_audio:
-
         ydl_opts = {
             **base_opts,
             'format': 'bestaudio/best',
-
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'mp3',
                 'preferredquality': '192',
             }],
         }
-
     else:
-
         ydl_opts = {
             **base_opts,
-
-            # Merge video + audio automatically
             'format': f'{format_id}+bestaudio/best',
-
             'merge_output_format': 'mp4',
         }
 
     try:
-
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(video_url, download=True)
             filename = ydl.prepare_filename(info)
@@ -151,21 +136,16 @@ def start_download(request):
             filename = os.path.splitext(filename)[0] + '.mp3'
 
         if not os.path.exists(filename):
-
             files = os.listdir(tmp_dir)
-
             if not files:
                 return HttpResponse('Download failed.', status=500)
-
             filename = os.path.join(tmp_dir, files[0])
 
-        response = FileResponse(
+        return FileResponse(
             open(filename, 'rb'),
             as_attachment=True,
             filename=os.path.basename(filename)
         )
-
-        return response
 
     except Exception as e:
         return HttpResponse(f'Download error: {str(e)}', status=500)
