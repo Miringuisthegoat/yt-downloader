@@ -1,7 +1,7 @@
-from django.urls import path
-from . import views
+from django.contrib import admin
+from django.urls import path, include
 
 urlpatterns = [
-    path('', views.download_video, name='home'),
-    path('download/', views.start_download, name='start_download'),
+    path('admin/', admin.site.urls),
+    path('', include('ytdl.urls')),
 ]
