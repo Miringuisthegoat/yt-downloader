@@ -137,7 +137,3 @@ def start_download(request):
 
     except Exception as e:
         return HttpResponse(f'Download error: {str(e)}', status=500)
-```
-
----
-
