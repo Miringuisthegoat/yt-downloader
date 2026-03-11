@@ -4,18 +4,19 @@ import yt_dlp as youtube_dl
 def get_yt_dlp_opts(is_download=False, format_id=None, is_audio=False, tmp_dir=None):
     """
     Centralized configuration for yt-dlp to bypass YouTube's 2026 blocks.
-    Updated to use writable /tmp/ directory for cookies.
+    Configured specifically for Render's read-only environment.
     """
-    # 1. Fetch secrets from Environment Variables (set these on Render)
+    # 1. Fetch secrets from Environment Variables (set these in Render Dashboard)
     proxy_url = os.getenv("YT_PROXY_URL")
     po_token = os.getenv("YT_PO_TOKEN")
     
     # 2. Setup Cookie Path
-    # We use /tmp/cookies.txt because /etc/secrets/ is Read-Only on Render.
-    # The file is copied from /etc/secrets/ to /tmp/ in views.py.
+    # Render's /etc/secrets/ is read-only. 
+    # We use the copy created in /tmp/ by views.py.
     writable_cookies = "/tmp/cookies.txt"
     local_cookies = os.path.join(os.getcwd(), "cookies.txt")
     
+    # Priority: 1. Writable Temp (Render) -> 2. Local File (Dev) -> 3. None
     if os.path.exists(writable_cookies):
         cookie_file = writable_cookies
     elif os.path.exists(local_cookies):
@@ -23,7 +24,8 @@ def get_yt_dlp_opts(is_download=False, format_id=None, is_audio=False, tmp_dir=N
     else:
         cookie_file = None
 
-    # 3. Build Extractor Args (Crucial for PO Token in 2026)
+    # 3. Build Extractor Args
+    # Using 'web.player' with the PO Token is the most stable method for 2026.
     extractor_args = {
         'youtube': {
             'player_client': ['android', 'web'],
@@ -31,6 +33,7 @@ def get_yt_dlp_opts(is_download=False, format_id=None, is_audio=False, tmp_dir=N
         }
     }
 
+    # 4. Base Options
     opts = {
         'quiet': True,
         'no_warnings': True,
@@ -43,20 +46,28 @@ def get_yt_dlp_opts(is_download=False, format_id=None, is_audio=False, tmp_dir=N
         'cookiefile': cookie_file,
     }
 
-    # 4. Logic for Downloading vs. Fetching Info
+    # 5. Logic for Downloading vs. Fetching Metadata
     if is_download:
+        # outtmpl handles the path and filename formatting
         opts['outtmpl'] = os.path.join(tmp_dir, '%(title)s.%(ext)s')
+        
         if is_audio:
             opts.update({
                 'format': 'bestaudio/best',
-                'postprocessors': [{'key': 'FFmpegExtractAudio','preferredcodec': 'mp3','preferredquality': '192'}]
+                'postprocessors': [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'mp3',
+                    'preferredquality': '192',
+                }]
             })
         else:
+            # Merges the specific video stream with the best audio available
             opts.update({
                 'format': f'{format_id}+bestaudio/best',
                 'merge_output_format': 'mp4'
             })
     else:
+        # Standard settings for initial link analysis
         opts.update({
             'noplaylist': True,
             'format': 'bestvideo+bestaudio/best',
