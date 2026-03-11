@@ -28,6 +28,7 @@ def download_video(request):
         ydl_opts = {
             'quiet': True,
             'no_warnings': True,
+            'extractor_args': {'youtube': {'player_client': ['android']}},
             'http_headers': YDL_HEADERS,
         }
 
@@ -92,6 +93,7 @@ def start_download(request):
     base_opts = {
         'quiet': True,
         'http_headers': YDL_HEADERS,
+        'extractor_args': {'youtube': {'player_client': ['android']}},
     }
 
     if is_audio:
@@ -135,3 +137,7 @@ def start_download(request):
 
     except Exception as e:
         return HttpResponse(f'Download error: {str(e)}', status=500)
+```
+
+---
+
