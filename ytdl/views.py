@@ -20,16 +20,26 @@ def download_video(request):
 
     if form.is_valid():
         video_url = form.cleaned_data.get("url")
-        regex = r'^(http(s)?:\/\/)?((w){3}.)?youtu(be|.be)?(\.com)?\/.+'
 
+        regex = r'^(http(s)?:\/\/)?((w){3}.)?youtu(be|.be)?(\.com)?\/.+'
         if not re.match(regex, video_url):
             return HttpResponse('Enter correct url.')
 
         ydl_opts = {
             'quiet': True,
             'no_warnings': True,
-            'extractor_args': {'youtube': {'player_client': ['android']}},
             'http_headers': YDL_HEADERS,
+
+            # Bypass cloud restrictions
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'web'],
+                    'player_skip': ['configs', 'webpage']
+                }
+            },
+
+            'nocheckcertificate': True,
+            'noplaylist': True,
         }
 
         try:
@@ -40,8 +50,11 @@ def download_video(request):
             return render(request, 'index.html', context)
 
         video_audio_streams = []
+
         for m in meta['formats']:
+
             file_size = m.get('filesize') or m.get('filesize_approx') or 0
+
             if file_size:
                 file_size = f'{round(int(file_size) / 1000000, 2)} mb'
             else:
@@ -49,28 +62,25 @@ def download_video(request):
 
             resolution = 'Audio'
             if m.get('height') is not None:
-                resolution = f"{m['height']}x{m['width']}"
+                resolution = f"{m['height']}p"
 
             video_audio_streams.append({
                 'resolution': resolution,
                 'extension': m.get('ext', 'N/A'),
                 'file_size': file_size,
                 'format_id': m.get('format_id', ''),
-                'video_url': m.get('url', '')
             })
 
         video_audio_streams = video_audio_streams[::-1]
 
         thumbnails = meta.get('thumbnails', [{}])
-        thumb_url = thumbnails[3]['url'] if len(thumbnails) > 3 else ''
+        thumb_url = thumbnails[-1]['url'] if thumbnails else ''
 
         context = {
             'form': form,
             'title': meta.get('title', 'N/A'),
             'streams': video_audio_streams,
             'description': meta.get('description', ''),
-            'likes': meta.get('like_count', 'N/A'),
-            'dislikes': meta.get('dislike_count', 'N/A'),
             'thumb': thumb_url,
             'video_url': video_url,
             'duration': round(int(meta.get('duration', 0)) / 60, 2),
@@ -81,6 +91,7 @@ def download_video(request):
 
 
 def start_download(request):
+
     video_url = request.GET.get('url')
     format_id = request.GET.get('format_id')
     is_audio = request.GET.get('audio') == 'true'
@@ -93,28 +104,45 @@ def start_download(request):
     base_opts = {
         'quiet': True,
         'http_headers': YDL_HEADERS,
-        'extractor_args': {'youtube': {'player_client': ['android']}},
+
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'web']
+            }
+        },
+
+        # Faster downloads
+        'concurrent_fragment_downloads': 5,
+
+        'outtmpl': os.path.join(tmp_dir, '%(title)s.%(ext)s'),
     }
 
     if is_audio:
+
         ydl_opts = {
             **base_opts,
-            'format': format_id,
-            'outtmpl': os.path.join(tmp_dir, '%(title)s.%(ext)s'),
+            'format': 'bestaudio/best',
+
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'mp3',
                 'preferredquality': '192',
             }],
         }
+
     else:
+
         ydl_opts = {
             **base_opts,
-            'format': format_id,
-            'outtmpl': os.path.join(tmp_dir, '%(title)s.%(ext)s'),
+
+            # Merge video + audio automatically
+            'format': f'{format_id}+bestaudio/best',
+
+            'merge_output_format': 'mp4',
         }
 
     try:
+
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(video_url, download=True)
             filename = ydl.prepare_filename(info)
@@ -123,9 +151,12 @@ def start_download(request):
             filename = os.path.splitext(filename)[0] + '.mp3'
 
         if not os.path.exists(filename):
+
             files = os.listdir(tmp_dir)
+
             if not files:
                 return HttpResponse('Download failed.', status=500)
+
             filename = os.path.join(tmp_dir, files[0])
 
         response = FileResponse(
@@ -133,6 +164,7 @@ def start_download(request):
             as_attachment=True,
             filename=os.path.basename(filename)
         )
+
         return response
 
     except Exception as e:
