@@ -25,3 +25,6 @@ __pycache__/
 
 # Swap files
 *.swp
+cookies.txt
+cookies(1).txt
+*.cookies

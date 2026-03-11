@@ -3,488 +3,10 @@
 
 {% block content %}
 
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap');
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: #0a0a0f;
-    color: #e8e6f0;
-    font-family: 'DM Sans', sans-serif;
-    min-height: 100vh;
-  }
-
-  /* ── HERO ── */
-  .hero {
-    position: relative;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    padding: 2rem;
-  }
-
-  .hero::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background:
-      radial-gradient(ellipse 80% 60% at 50% 0%, rgba(139,92,246,0.18) 0%, transparent 70%),
-      radial-gradient(ellipse 50% 40% at 80% 80%, rgba(236,72,153,0.10) 0%, transparent 60%),
-      radial-gradient(ellipse 40% 30% at 10% 60%, rgba(59,130,246,0.08) 0%, transparent 60%);
-    pointer-events: none;
-  }
-
-  .hero-grid {
-    position: absolute;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(139,92,246,0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(139,92,246,0.04) 1px, transparent 1px);
-    background-size: 60px 60px;
-    pointer-events: none;
-  }
-
-  /* ── AQUARIUS EMBLEM ── */
-  .aquarius-emblem {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-bottom: 2rem;
-    animation: fadeUp 0.5s ease both;
-  }
-
-  .aquarius-ring {
-    position: relative;
-    width: 90px;
-    height: 90px;
-    border-radius: 50%;
-    background: conic-gradient(
-      from 180deg,
-      rgba(139,92,246,0.8) 0deg,
-      rgba(168,85,247,0.6) 90deg,
-      rgba(196,181,253,0.3) 180deg,
-      rgba(139,92,246,0.8) 360deg
-    );
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow:
-      0 0 30px rgba(139,92,246,0.4),
-      0 0 60px rgba(139,92,246,0.15),
-      inset 0 0 20px rgba(0,0,0,0.5);
-    animation: spinRing 12s linear infinite;
-  }
-
-  .aquarius-ring::before {
-    content: '';
-    position: absolute;
-    inset: 4px;
-    border-radius: 50%;
-    background: #0a0a0f;
-  }
-
-  .aquarius-inner {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    line-height: 1;
-  }
-
-  .aquarius-symbol {
-    font-size: 1.6rem;
-    background: linear-gradient(135deg, #c4b5fd, #f0abfc);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 0.1rem;
-  }
-
-  .aquarius-number {
-    font-family: 'Playfair Display', serif;
-    font-size: 1rem;
-    font-weight: 700;
-    background: linear-gradient(135deg, #c4b5fd, #f0abfc);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    letter-spacing: 0.05em;
-  }
-
-  .aquarius-label {
-    margin-top: 0.6rem;
-    font-size: 0.65rem;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: rgba(196,181,253,0.5);
-  }
-
-  @keyframes spinRing {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
-  }
-
-  /* ── HERO TEXT ── */
-  .hero-badge {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.7rem;
-    font-weight: 500;
-    letter-spacing: 0.25em;
-    text-transform: uppercase;
-    color: rgba(139,92,246,0.9);
-    border: 1px solid rgba(139,92,246,0.3);
-    padding: 0.4rem 1.2rem;
-    border-radius: 100px;
-    margin-bottom: 2rem;
-    backdrop-filter: blur(10px);
-    background: rgba(139,92,246,0.06);
-    animation: fadeUp 0.6s ease both;
-  }
-
-  .hero-title {
-    font-family: 'Playfair Display', serif;
-    font-size: clamp(3rem, 8vw, 6rem);
-    font-weight: 700;
-    line-height: 1.05;
-    text-align: center;
-    margin-bottom: 1rem;
-    background: linear-gradient(135deg, #ffffff 0%, #c4b5fd 50%, #f0abfc 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: fadeUp 0.6s 0.1s ease both;
-  }
-
-  .hero-sub {
-    font-size: 1rem;
-    color: rgba(232,230,240,0.45);
-    text-align: center;
-    margin-bottom: 3rem;
-    font-weight: 300;
-    letter-spacing: 0.02em;
-    animation: fadeUp 0.6s 0.2s ease both;
-  }
-
-  /* ── SEARCH ── */
-  .search-wrap {
-    width: 100%;
-    max-width: 680px;
-    animation: fadeUp 0.6s 0.3s ease both;
-  }
-
-  .search-wrap .form-group { margin-bottom: 0; }
-
-  .search-wrap input[type="text"],
-  .search-wrap input[type="url"] {
-    width: 100%;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(139,92,246,0.25);
-    border-radius: 16px 16px 0 0;
-    color: #e8e6f0;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 1rem;
-    padding: 1.1rem 1.5rem;
-    outline: none;
-    transition: border-color 0.3s, box-shadow 0.3s;
-  }
-
-  .search-wrap input:focus {
-    border-color: rgba(139,92,246,0.6);
-    box-shadow: 0 0 0 3px rgba(139,92,246,0.1);
-  }
-
-  .search-wrap input::placeholder { color: rgba(232,230,240,0.3); }
-
-  .search-wrap label {
-    color: rgba(232,230,240,0.5);
-    font-size: 0.8rem;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    margin-bottom: 0.5rem;
-    display: block;
-  }
-
-  .btn-search {
-    width: 100%;
-    background: linear-gradient(135deg, #7c3aed, #a855f7);
-    border: none;
-    border-radius: 0 0 16px 16px;
-    color: #fff;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.95rem;
-    font-weight: 500;
-    letter-spacing: 0.05em;
-    padding: 1rem;
-    cursor: pointer;
-    transition: opacity 0.2s, transform 0.2s;
-  }
-
-  .btn-search:hover { opacity: 0.88; transform: translateY(-1px); }
-
-  /* ── ERROR BOX ── */
-  .error-box {
-    margin-top: 1.5rem;
-    background: rgba(248,113,113,0.08);
-    border: 1px solid rgba(248,113,113,0.25);
-    border-radius: 12px;
-    padding: 0.9rem 1.4rem;
-    color: #fca5a5;
-    font-size: 0.88rem;
-    text-align: center;
-    max-width: 680px;
-    width: 100%;
-    animation: fadeUp 0.3s ease both;
-  }
-
-  /* ── RESULTS ── */
-  .results {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 4rem 2rem 6rem;
-    animation: fadeUp 0.6s ease both;
-  }
-
-  .video-card {
-    display: flex;
-    gap: 2rem;
-    align-items: flex-start;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 20px;
-    padding: 2rem;
-    margin-bottom: 3rem;
-    backdrop-filter: blur(20px);
-  }
-
-  .video-thumb {
-    flex-shrink: 0;
-    width: 220px;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-  }
-
-  .video-thumb img { width: 100%; display: block; }
-  .video-meta { flex: 1; }
-
-  .video-title {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.6rem;
-    font-weight: 700;
-    color: #fff;
-    margin-bottom: 1.2rem;
-    line-height: 1.3;
-  }
-
-  .meta-pills {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.6rem;
-    margin-bottom: 1.2rem;
-  }
-
-  .pill {
-    background: rgba(139,92,246,0.1);
-    border: 1px solid rgba(139,92,246,0.2);
-    border-radius: 100px;
-    padding: 0.35rem 0.9rem;
-    font-size: 0.8rem;
-    color: rgba(232,230,240,0.7);
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-  }
-
-  .pill span { color: #c4b5fd; font-weight: 500; }
-
-  .btn-desc {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 8px;
-    color: rgba(232,230,240,0.6);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.8rem;
-    padding: 0.4rem 1rem;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-
-  .btn-desc:hover { background: rgba(255,255,255,0.09); }
-
-  .description-box {
-    margin-top: 1rem;
-    background: rgba(0,0,0,0.2);
-    border-radius: 10px;
-    padding: 1rem 1.2rem;
-    font-size: 0.85rem;
-    color: rgba(232,230,240,0.5);
-    line-height: 1.7;
-    max-height: 120px;
-    overflow-y: auto;
-  }
-
-  /* ── TABLES ── */
-  .section-label {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.4rem;
-    color: #fff;
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-  }
-
-  .section-label::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: linear-gradient(90deg, rgba(139,92,246,0.3), transparent);
-  }
-
-  .stream-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 3rem;
-  }
-
-  .stream-table thead tr {
-    border-bottom: 1px solid rgba(255,255,255,0.07);
-  }
-
-  .stream-table th {
-    font-size: 0.7rem;
-    font-weight: 500;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: rgba(232,230,240,0.35);
-    padding: 0.8rem 1rem;
-    text-align: left;
-  }
-
-  .stream-table tbody tr,
-  .stream-table tbody tr:nth-child(odd),
-  .stream-table tbody tr:nth-child(even),
-  .table-striped tbody tr:nth-of-type(odd),
-  .table-striped > tbody > tr:nth-of-type(odd) > *,
-  .table > :not(caption) > * > *,
-  .table td, .table th {
-    background: transparent !important;
-    background-color: transparent !important;
-    box-shadow: none !important;
-  }
-
-  .stream-table tbody tr {
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-    transition: background 0.2s;
-  }
-
-  .stream-table tbody tr:hover {
-    background: rgba(139,92,246,0.06) !important;
-  }
-
-  .stream-table td {
-    padding: 1rem;
-    font-size: 0.9rem;
-    color: rgba(232,230,240,0.75);
-    vertical-align: middle;
-  }
-
-  .res-badge {
-    background: rgba(139,92,246,0.12);
-    border: 1px solid rgba(139,92,246,0.2);
-    border-radius: 6px;
-    padding: 0.25rem 0.6rem;
-    font-size: 0.8rem;
-    color: #c4b5fd;
-    font-weight: 500;
-    display: inline-block;
-  }
-
-  .ext-badge {
-    background: rgba(255,255,255,0.06);
-    border-radius: 6px;
-    padding: 0.25rem 0.6rem;
-    font-size: 0.8rem;
-    color: rgba(232,230,240,0.6);
-    display: inline-block;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .mp3-badge {
-    background: rgba(20,184,166,0.15);
-    border: 1px solid rgba(20,184,166,0.3);
-    border-radius: 6px;
-    padding: 0.25rem 0.6rem;
-    font-size: 0.75rem;
-    color: #5eead4;
-    font-weight: 600;
-    display: inline-block;
-    letter-spacing: 0.08em;
-    margin-left: 0.4rem;
-  }
-
-  .btn-dl {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1.1rem;
-    border-radius: 8px;
-    font-size: 0.82rem;
-    font-weight: 500;
-    font-family: 'DM Sans', sans-serif;
-    text-decoration: none;
-    transition: transform 0.15s, opacity 0.15s;
-    cursor: pointer;
-  }
-
-  .btn-dl:hover { transform: translateY(-1px); opacity: 0.85; text-decoration: none; }
-
-  .btn-dl-video {
-    background: linear-gradient(135deg, #7c3aed, #a855f7);
-    color: #fff !important;
-  }
-
-  .btn-dl-audio {
-    background: linear-gradient(135deg, #0f766e, #14b8a6);
-    color: #fff !important;
-  }
-
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(24px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  @media (max-width: 640px) {
-    .video-card { flex-direction: column; }
-    .video-thumb { width: 100%; }
-    .meta-pills { gap: 0.4rem; }
-  }
-
-  .form-control {
-    background: rgba(255,255,255,0.04) !important;
-    border: 1px solid rgba(139,92,246,0.25) !important;
-    color: #e8e6f0 !important;
-    border-radius: 16px 16px 0 0 !important;
-    padding: 1.1rem 1.5rem !important;
-  }
-  .form-control:focus {
-    box-shadow: 0 0 0 3px rgba(139,92,246,0.1) !important;
-    border-color: rgba(139,92,246,0.6) !important;
-  }
-</style>
-
-<!-- ── HERO ── -->
+<!-- HERO -->
 <div class="hero">
   <div class="hero-grid"></div>
 
-  <!-- Aquarius Emblem -->
   <div class="aquarius-emblem">
     <div class="aquarius-ring">
       <div class="aquarius-inner">
@@ -499,14 +21,17 @@
   <h1 class="hero-title">YouTube<br>Downloader</h1>
   <p class="hero-sub">Paste a link. Pick your quality. Done.</p>
 
+  <!-- SEARCH FORM -->
   <div class="search-wrap">
-    <form action="" method="post">
+
+    <form action="" method="post" id="searchForm">
       {% csrf_token %}
       {{ form|crispy }}
-      <button type="submit" class="btn-search">↵ &nbsp; Search Video</button>
+      <button type="submit" class="btn-search" id="searchBtn">
+        ↵ &nbsp; Search Video
+      </button>
     </form>
 
-    <!-- Error Message -->
     {% if error %}
     <div class="error-box">
       ⚠️ {{ error }}
@@ -516,32 +41,46 @@
   </div>
 </div>
 
-<!-- ── RESULTS ── -->
+<!-- RESULTS -->
 {% if title %}
 <div class="results">
 
+  <!-- VIDEO INFO -->
   <div class="video-card">
     <div class="video-thumb">
       <img src="{{ thumb }}" alt="{{ title }}">
     </div>
+
     <div class="video-meta">
       <p class="video-title">{{ title }}</p>
+
       <div class="meta-pills">
         <div class="pill">⏱ Duration <span>{{ duration }} mins</span></div>
         <div class="pill">👁 Views <span>{{ views }}</span></div>
+
+        {% if likes %}
         <div class="pill">👍 Likes <span>{{ likes }}</span></div>
+        {% endif %}
+
+        {% if dislikes %}
         <div class="pill">👎 Dislikes <span>{{ dislikes }}</span></div>
+        {% endif %}
       </div>
-      <button class="btn-desc" data-toggle="collapse" data-target="#desc-box">
+
+      <button class="btn-desc" onclick="toggleDesc()">
         Show Description ▾
       </button>
-      <div id="desc-box" class="description-box collapse">
+
+      <div id="desc-box" class="description-box" style="display:none;">
         {{ description }}
       </div>
     </div>
   </div>
 
+
+  <!-- VIDEO DOWNLOADS -->
   <p class="section-label">🎬 &nbsp; Video Downloads</p>
+
   <table class="stream-table">
     <thead>
       <tr>
@@ -551,24 +90,46 @@
         <th>Download</th>
       </tr>
     </thead>
+
     <tbody>
+
       {% for stream in streams %}
         {% if stream.resolution != 'Audio' %}
-          <tr>
-            <td><span class="res-badge">{{ stream.resolution }}</span></td>
-            <td>{{ stream.file_size }}</td>
-            <td><span class="ext-badge">{{ stream.extension }}</span></td>
-            <td>
-              <a href="/download/?url={{ video_url }}&format_id={{ stream.format_id }}"
-                 class="btn-dl btn-dl-video">↓ Download</a>
-            </td>
-          </tr>
+        <tr>
+          <td>
+            <span class="res-badge">
+              {{ stream.resolution }}
+            </span>
+          </td>
+
+          <td>{{ stream.file_size }}</td>
+
+          <td>
+            <span class="ext-badge">
+              {{ stream.extension }}
+            </span>
+          </td>
+
+          <td>
+            <a href="{% url 'start_download' %}?url={{ video_url|urlencode }}&format_id={{ stream.format_id }}"
+               class="btn-dl btn-dl-video">
+               ↓ Download
+            </a>
+          </td>
+        </tr>
         {% endif %}
       {% endfor %}
+
     </tbody>
   </table>
 
-  <p class="section-label">🎵 &nbsp; Audio Only <span class="mp3-badge">MP3</span></p>
+
+  <!-- AUDIO DOWNLOAD -->
+  <p class="section-label">
+    🎵 &nbsp; Audio Only
+    <span class="mp3-badge">MP3</span>
+  </p>
+
   <table class="stream-table">
     <thead>
       <tr>
@@ -577,26 +138,66 @@
         <th>Download</th>
       </tr>
     </thead>
+
     <tbody>
+
       {% for stream in streams %}
         {% if stream.resolution == 'Audio' %}
-          <tr>
-            <td>{{ stream.file_size }}</td>
-            <td>
-              <span class="ext-badge">{{ stream.extension }}</span>
-              → <span class="ext-badge" style="color:#5eead4; border-color:rgba(20,184,166,0.3);">MP3</span>
-            </td>
-            <td>
-              <a href="/download/?url={{ video_url }}&format_id={{ stream.format_id }}&audio=true"
-                 class="btn-dl btn-dl-audio">↓ Download MP3</a>
-            </td>
-          </tr>
+
+        <tr>
+          <td>{{ stream.file_size }}</td>
+
+          <td>
+            <span class="ext-badge">{{ stream.extension }}</span>
+            →
+            <span class="ext-badge"
+                  style="color:#5eead4;border-color:rgba(20,184,166,0.3);">
+                  MP3
+            </span>
+          </td>
+
+          <td>
+            <a href="{% url 'start_download' %}?url={{ video_url|urlencode }}&format_id={{ stream.format_id }}&audio=true"
+               class="btn-dl btn-dl-audio">
+               ↓ Download MP3
+            </a>
+          </td>
+
+        </tr>
+
         {% endif %}
       {% endfor %}
+
     </tbody>
   </table>
 
 </div>
 {% endif %}
+
+
+<script>
+
+function toggleDesc() {
+
+  const box = document.getElementById("desc-box");
+
+  if (box.style.display === "none") {
+      box.style.display = "block";
+  } else {
+      box.style.display = "none";
+  }
+
+}
+
+document.getElementById("searchForm")?.addEventListener("submit", function(){
+
+  const btn = document.getElementById("searchBtn");
+
+  btn.innerHTML = "Searching...";
+  btn.disabled = true;
+
+});
+
+</script>
 
 {% endblock %}
