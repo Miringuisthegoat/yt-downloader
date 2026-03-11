@@ -15,23 +15,26 @@ YDL_HEADERS = {
 }
 
 # ---------------------------
-# FIXED COOKIE SUPPORT FOR RENDER
+# COOKIE SUPPORT (ROBUST)
 # ---------------------------
 RENDER_SECRETS_PATH = "/etc/secrets/cookies.txt"
-# We move it to /tmp because it's a writable directory on Render
 WRITABLE_COOKIES_PATH = "/tmp/cookies.txt"
 
-if os.path.exists(RENDER_SECRETS_PATH):
-    try:
-        shutil.copy2(RENDER_SECRETS_PATH, WRITABLE_COOKIES_PATH)
-        COOKIES_PATH = WRITABLE_COOKIES_PATH
-    except Exception:
-        # If copy fails, fallback to read-only but yt-dlp might complain
-        COOKIES_PATH = RENDER_SECRETS_PATH
-elif os.path.exists(os.path.join(os.getcwd(), "cookies.txt")):
-    COOKIES_PATH = os.path.join(os.getcwd(), "cookies.txt")
-else:
-    COOKIES_PATH = None
+def setup_cookies():
+    """Ensures cookies are in a writable location for yt-dlp."""
+    if os.path.exists(RENDER_SECRETS_PATH):
+        try:
+            shutil.copy2(RENDER_SECRETS_PATH, WRITABLE_COOKIES_PATH)
+            return WRITABLE_COOKIES_PATH
+        except Exception:
+            return RENDER_SECRETS_PATH
+    
+    local_path = os.path.join(os.getcwd(), "cookies.txt")
+    if os.path.exists(local_path):
+        return local_path
+    return None
+
+COOKIES_PATH = setup_cookies()
 
 # ---------------------------
 # PO TOKEN SUPPORT
@@ -39,7 +42,6 @@ else:
 PO_TOKEN = os.getenv("YT_PO_TOKEN")
 
 def get_extractor_args():
-    """Return extractor args with optional PO token."""
     args = {
         'player_client': ['android', 'web'],
         'player_skip': ['configs', 'webpage']
@@ -66,9 +68,11 @@ def download_video(request):
             'extractor_args': get_extractor_args(),
             'nocheckcertificate': True,
             'noplaylist': True,
-            'check_formats': False,    # Speed Optimization
+            'check_formats': False,
             'no_color': True,
             'lazy_playlist': True,
+            # FALLBACK FORMATS: Try best quality, but settle for anything available
+            'format': 'bestvideo+bestaudio/best',
         }
 
         if COOKIES_PATH:
@@ -78,35 +82,35 @@ def download_video(request):
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                 meta = ydl.extract_info(video_url, download=False)
         except Exception as e:
-            context['error'] = f'Could not fetch video: {str(e)}'
+            # Handle the "Sign in" error specifically if cookies fail
+            error_msg = str(e)
+            if "Sign in to confirm you're not a bot" in error_msg:
+                context['error'] = "YouTube blocked the request. Please update your cookies.txt on Render."
+            else:
+                context['error'] = f'Could not fetch video: {error_msg}'
             return render(request, 'index.html', context)
 
         streams = []
         for f in meta.get('formats', []):
-            file_size = f.get('filesize') or f.get('filesize_approx') or 0
-            if file_size:
-                file_size = f'{round(int(file_size)/1_000_000,2)} MB'
-            else:
-                file_size = 'Unknown'
+            # Only list formats that actually have a resolution or are audio
+            if f.get('vcodec') != 'none' or f.get('acodec') != 'none':
+                file_size = f.get('filesize') or f.get('filesize_approx') or 0
+                file_size_str = f'{round(int(file_size)/1_000_000,2)} MB' if file_size else 'Unknown'
+                resolution = f"{f.get('height')}p" if f.get('height') else 'Audio'
 
-            resolution = f"{f['height']}p" if f.get('height') else 'Audio'
-            streams.append({
-                'format_id': f['format_id'],
-                'resolution': resolution,
-                'extension': f.get('ext', 'N/A'),
-                'file_size': file_size
-            })
-
-        streams = streams[::-1]
-        thumbnails = meta.get('thumbnails', [{}])
-        thumb_url = thumbnails[-1]['url'] if thumbnails else ''
+                streams.append({
+                    'format_id': f['format_id'],
+                    'resolution': resolution,
+                    'extension': f.get('ext', 'N/A'),
+                    'file_size': file_size_str
+                })
 
         context.update({
             'form': form,
             'title': meta.get('title', 'N/A'),
-            'streams': streams,
-            'description': meta.get('description', ''),
-            'thumb': thumb_url,
+            'streams': streams[::-1],
+            'description': meta.get('description', '')[:200] + '...',
+            'thumb': meta.get('thumbnails', [{}])[-1].get('url', ''),
             'video_url': video_url,
             'duration': round(int(meta.get('duration', 0))/60, 2),
             'views': f'{int(meta.get("view_count", 0)):,}'
@@ -127,51 +131,23 @@ def start_download(request):
         'quiet': True,
         'http_headers': YDL_HEADERS,
         'extractor_args': get_extractor_args(),
-        'concurrent_fragment_downloads': 5,
-        'noplaylist': True,
         'nocheckcertificate': True,
         'outtmpl': os.path.join(tmp_dir, '%(title)s.%(ext)s'),
-        'check_formats': False,
+        'cookiefile': COOKIES_PATH if COOKIES_PATH else None,
     }
 
-    if COOKIES_PATH:
-        base_opts['cookiefile'] = COOKIES_PATH
-
     if is_audio:
-        ydl_opts = {
-            **base_opts,
-            'format': 'bestaudio/best',
-            'postprocessors': [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '192',
-            }],
-        }
+        ydl_opts = {**base_opts, 'format': 'bestaudio/best', 'postprocessors': [{'key': 'FFmpegExtractAudio','preferredcodec': 'mp3','preferredquality': '192'}]}
     else:
-        ydl_opts = {
-            **base_opts,
-            'format': f'{format_id}+bestaudio/best',
-            'merge_output_format': 'mp4',
-        }
+        # Improved format selection for downloading
+        ydl_opts = {**base_opts, 'format': f'{format_id}+bestaudio/best', 'merge_output_format': 'mp4'}
 
     try:
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(video_url, download=True)
             filename = ydl.prepare_filename(info)
+            if is_audio: filename = os.path.splitext(filename)[0] + '.mp3'
 
-        if is_audio:
-            filename = os.path.splitext(filename)[0] + '.mp3'
-
-        if not os.path.exists(filename):
-            files = os.listdir(tmp_dir)
-            if not files:
-                return HttpResponse('Download failed.', status=500)
-            filename = os.path.join(tmp_dir, files[0])
-
-        return FileResponse(
-            open(filename, 'rb'),
-            as_attachment=True,
-            filename=os.path.basename(filename)
-        )
+        return FileResponse(open(filename, 'rb'), as_attachment=True, filename=os.path.basename(filename))
     except Exception as e:
         return HttpResponse(f'Download error: {str(e)}', status=500)
